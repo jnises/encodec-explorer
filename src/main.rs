@@ -18,9 +18,9 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
     eframe::run_native(
-        "eframe template",
+        "encodec-explorer",
         native_options,
-        Box::new(|cc| Ok(Box::new(encodec-explorer::TemplateApp::new(cc)))),
+        Box::new(|cc| Ok(Box::new(encodec_explorer::EncodecExplorer::new(cc)))),
     )
 }
 
@@ -37,7 +37,7 @@ fn main() {
             .start(
                 "the_canvas_id",
                 web_options,
-                Box::new(|cc| Ok(Box::new(encodec-explorer::TemplateApp::new(cc)))),
+                Box::new(|cc| Ok(Box::new(encodec_explorer::EncodecExplorer::new(cc)))),
             )
             .await;
 
