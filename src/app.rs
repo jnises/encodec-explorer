@@ -2,11 +2,13 @@
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EncodecExplorer {
+    code: u32,
 }
 
 impl Default for EncodecExplorer {
     fn default() -> Self {
         Self {
+            code: 0,
         }
     }
 }
@@ -58,7 +60,7 @@ impl eframe::App for EncodecExplorer {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("encodec-explorer");
+            ui.add(egui::Slider::new(&mut self.code, 0..=1023).text("code"));
         });
     }
 }

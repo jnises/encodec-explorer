@@ -23,9 +23,15 @@ log = "0.4"
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }
 
+candle-core = "0.6.0"
+hf-hub = "0.3.2"
+anyhow = "1.0.86"
+candle-nn = "0.6.0"
+candle-transformers = "0.6.0"
+
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-env_logger = "0.10"
+env_logger = "0.11"
 
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]
