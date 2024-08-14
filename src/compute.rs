@@ -1,4 +1,4 @@
-use candle_core::{DType, Device, Tensor};
+use candle_core::{DType, Device, IndexOp as _, Tensor};
 use candle_transformers::models::encodec;
 
 pub struct Compute {
@@ -18,12 +18,13 @@ impl Compute {
         Ok(Self { model, device })
     }
 
-    pub fn decode_codes(&self, codes: &Tensor) -> anyhow::Result<Tensor> {
+    pub fn decode_codes(&self, code: u32) -> anyhow::Result<Tensor> {
+        let code_tensor = Tensor::new(&[[[code]]], &self.device)?;
         // TODO: pad and such
-        Ok(self.model.decode(codes)?)
+        Ok(self.model.decode(&code_tensor)?.i(0)?.i(0)?)
     }
 
-    pub fn device(&self) -> &Device {
-        &self.device
-    }
+    // pub fn device(&self) -> &Device {
+    //     &self.device
+    // }
 }

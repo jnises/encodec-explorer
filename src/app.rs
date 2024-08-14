@@ -1,14 +1,19 @@
+use crate::worker;
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EncodecExplorer {
     code: u32,
+    #[serde(skip)]
+    worker: Option<worker::Worker>,
 }
 
 impl Default for EncodecExplorer {
     fn default() -> Self {
         Self {
             code: 0,
+            worker: None,
         }
     }
 }
@@ -16,16 +21,13 @@ impl Default for EncodecExplorer {
 impl EncodecExplorer {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // This is also where you can customize the look and feel of egui using
-        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
-
-        // Load previous app state (if any).
-        // Note that you must enable the `persistence` feature for this to work.
-        if let Some(storage) = cc.storage {
-            return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        }
-
-        Default::default()
+        let mut s = if let Some(storage) = cc.storage {
+            eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
+        } else {
+            Self::default()
+        };
+        s.worker = Some(worker::Worker::new());
+        s
     }
 }
 
@@ -37,8 +39,7 @@ impl eframe::App for EncodecExplorer {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
-        // For inspiration and more examples, go to https://emilk.github.io/egui
+        self.worker.as_mut().unwrap().update();
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
@@ -62,5 +63,29 @@ impl eframe::App for EncodecExplorer {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.add(egui::Slider::new(&mut self.code, 0..=1023).text("code"));
         });
+
+        self.worker.as_mut().unwrap().set_code(self.code).unwrap();
     }
+}
+
+fn draw_buffer() {
+
+    // let plot_width = ui.available_width().min(300.);
+    // let (_, rect) = ui.allocate_space(vec2(plot_width, plot_width * 0.5));
+    // let p = ui.painter_at(rect);
+    // p.rect_filled(rect, 10f32, Color32::BLACK);
+    // let to_rect = emath::RectTransform::from_to(
+    //     Rect::from_x_y_ranges(0.0..=(VIS_SIZE / 2) as f32, -1.0..=1.0),
+    //     rect,
+    // );
+    // let line: Vec<Pos2> = left_vis_buffer
+    //     .iter()
+    //     .copied()
+    //     .skip(i)
+    //     .take(VIS_SIZE / 2)
+    //     .enumerate()
+    //     .map(|(x, y)| to_rect * pos2(x as f32, y))
+    //     .collect();
+    // debug_assert_eq!(line.len(), VIS_SIZE / 2);
+    // p.add(epaint::Shape::line(line, Stroke::new(1f32, Color32::GRAY)));
 }

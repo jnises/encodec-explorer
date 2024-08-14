@@ -1,13 +1,14 @@
 use candle_core::Tensor;
+use log::warn;
 
 use crate::compute;
 
-pub enum ToWorker {
+enum ToWorker {
     Stop,
-    SetCodes{code: u32},
+    SetCodes { code: u32 },
 }
 
-pub enum ToApp {
+enum ToApp {
     Error(String),
     Samples(Vec<f32>),
 }
@@ -16,12 +17,14 @@ pub struct Worker {
     handle: Option<std::thread::JoinHandle<()>>,
     to_worker: std::sync::mpsc::Sender<ToWorker>,
     from_worker: std::sync::mpsc::Receiver<ToApp>,
+    // TODO: put this somewhere else
+    samples: Vec<f32>,
 }
 
 impl Worker {
     pub fn new() -> Self {
-        let (mut to_worker, mut from_app) = std::sync::mpsc::channel();
-        let (mut to_app, mut from_worker) = std::sync::mpsc::channel();
+        let (to_worker, mut from_app) = std::sync::mpsc::channel();
+        let (mut to_app, from_worker) = std::sync::mpsc::channel();
 
         let handle = Some(std::thread::spawn(move || {
             if let Err(e) = run(&mut from_app, &mut to_app) {
@@ -33,7 +36,28 @@ impl Worker {
             handle,
             to_worker,
             from_worker,
+            samples: Vec::from([0f32; 320]),
         }
+    }
+
+    pub fn set_code(&mut self, code: u32) -> anyhow::Result<()> {
+        self.to_worker.send(ToWorker::SetCodes { code })?;
+        Ok(())
+    }
+
+    pub fn update(&mut self) {
+        for m in self.from_worker.try_iter() {
+            match m {
+                ToApp::Error(e) => warn!("worker error: {e:?}"),
+                ToApp::Samples(samples) => {
+                    self.samples = samples;
+                }
+            }
+        }
+    }
+
+    pub fn samples(&self) -> &[f32] {
+        self.samples.as_slice()
     }
 }
 
@@ -44,26 +68,44 @@ impl Drop for Worker {
     }
 }
 
-fn run(from_app: &mut std::sync::mpsc::Receiver<ToWorker>, to_app: &mut std::sync::mpsc::Sender<ToApp>) -> anyhow::Result<()> {
+fn run(
+    from_app: &mut std::sync::mpsc::Receiver<ToWorker>,
+    to_app: &mut std::sync::mpsc::Sender<ToApp>,
+) -> anyhow::Result<()> {
     let c = compute::Compute::new()?;
     let mut prev_code = None;
     let mut current_code = None;
     loop {
-        match from_app.recv()? {
-            ToWorker::Stop => break,
-            ToWorker::SetCodes { code } => {
-                current_code = Some(code);
-            },
-        }
-        if prev_code != current_code {
-            if let Some(code) = current_code {
-                let code_tensor = Tensor::new(&[code], c.device())?;
-                let pcm = c.decode_codes(&code_tensor)?;
-                let pcm_vec: Vec<f32> = pcm.to_vec1()?;
-                to_app.send(ToApp::Samples(pcm_vec))?;
+        let r = (|| -> anyhow::Result<bool> {
+            // TODO: pump all pending messages to avoid decoding things that will be immediately overwritten
+            match from_app.recv()? {
+                ToWorker::Stop => return Ok(false),
+                ToWorker::SetCodes { code } => {
+                    current_code = Some(code);
+                }
             }
-            prev_code = current_code;
+            if prev_code != current_code {
+                if let Some(code) = current_code {
+                    let pcm = c.decode_codes(code)?;
+                    let pcm_vec: Vec<f32> = pcm.to_vec1()?;
+                    to_app.send(ToApp::Samples(pcm_vec))?;
+                }
+                prev_code = current_code;
+            }
+            Ok(true)
+        })();
+        match r.unwrap() {
+            true => {},
+            false => break,
         }
+        // match r {
+        //     Ok(false) => break,
+        //     Err(e) => {
+        //         let es = e.to_string();
+        //         to_app.send(ToApp::Error(es)).unwrap()
+        //     },
+        //     _ => {},
+        // }
     }
     Ok(())
 }
