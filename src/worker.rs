@@ -87,8 +87,7 @@ fn run(
             if prev_code != current_code {
                 if let Some(code) = current_code {
                     let pcm = c.decode_codes(code)?;
-                    let pcm_vec: Vec<f32> = pcm.to_vec1()?;
-                    to_app.send(ToApp::Samples(pcm_vec))?;
+                    to_app.send(ToApp::Samples(pcm))?;
                 }
                 prev_code = current_code;
             }
