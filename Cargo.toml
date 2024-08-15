@@ -25,7 +25,7 @@ log = "0.4"
 
 candle-core = "0.6.0"
 hf-hub = "0.3.2"
-anyhow = "1.0.86"
+anyhow = { version = "1.0.86", features = ["backtrace"] }
 candle-nn = "0.6.0"
 candle-transformers = "0.6.0"
 rubato = "0.15.0"
