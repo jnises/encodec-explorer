@@ -4,3 +4,5 @@ mod app;
 pub use app::EncodecExplorer;
 mod compute;
 mod worker;
+mod audio;
+mod synth;

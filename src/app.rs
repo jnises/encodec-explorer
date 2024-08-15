@@ -1,6 +1,9 @@
-use egui::{emath, epaint, pos2, vec2, Color32, Pos2, Rect, Stroke};
+use std::{sync::Arc, time::Duration};
 
-use crate::worker;
+use egui::{emath, epaint, pos2, vec2, Color32, Pos2, Rect, Stroke};
+use log::{info, warn};
+
+use crate::{audio, synth, worker};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -9,6 +12,10 @@ pub struct EncodecExplorer {
     code: u32,
     #[serde(skip)]
     worker: Option<worker::Worker>,
+    #[serde(skip)]
+    audio: Option<audio::AudioManager>,
+    #[serde(skip)]
+    synth: Option<Arc<synth::SamplePlayer>>,
 }
 
 impl Default for EncodecExplorer {
@@ -16,6 +23,8 @@ impl Default for EncodecExplorer {
         Self {
             code: 0,
             worker: None,
+            audio: None,
+            synth: None,
         }
     }
 }
@@ -29,6 +38,11 @@ impl EncodecExplorer {
             Self::default()
         };
         s.worker = Some(worker::Worker::new());
+        s.synth = Some(Arc::new(synth::SamplePlayer::new()));
+        s.audio = Some(audio::AudioManager::new(s.synth.as_ref().unwrap().clone(), |e| {
+            warn!("synth error: {e}")
+        }));
+        info!("audio device: {:?}", s.audio.as_ref().unwrap().get_name());
         s
     }
 }
@@ -41,13 +55,18 @@ impl eframe::App for EncodecExplorer {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.worker.as_mut().unwrap().update();
+        if let Some(new_samples) = self.worker.as_mut().unwrap().update() {
+            self.synth.as_ref().unwrap().update_samples(new_samples.to_vec());
+        }
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.add(egui::Slider::new(&mut self.code, 0..=1023).text("code"));
             draw_buffer(ui, self.worker.as_ref().unwrap().samples());
         });
 
         self.worker.as_mut().unwrap().set_code(self.code).unwrap();
+        // TODO: only reppaint if something has happened
+        ctx.request_repaint_after(Duration::from_secs(1));
     }
 }
 

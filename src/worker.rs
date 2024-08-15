@@ -45,15 +45,19 @@ impl Worker {
         Ok(())
     }
 
-    pub fn update(&mut self) {
+    /// returns samples if they were updated
+    pub fn update(&mut self) -> Option<&[f32]> {
+        let mut samples_updated = false;
         for m in self.from_worker.try_iter() {
             match m {
                 ToApp::Error(e) => warn!("worker error: {e:?}"),
                 ToApp::Samples(samples) => {
                     self.samples = samples;
+                    samples_updated = true;
                 }
             }
         }
+        samples_updated.then_some(&self.samples)
     }
 
     pub fn samples(&self) -> &[f32] {
