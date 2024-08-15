@@ -1,13 +1,16 @@
 use std::{borrow::BorrowMut, sync::Mutex};
 
 use log::info;
+use rubato::Resampler;
 
 use crate::audio;
 
 struct State {
     current_sample_rate: u32,
-    sample_pos: u64,
-    samples: Vec<f32>,
+    play_pos: usize,
+    raw_samples: Option<Vec<f32>>,
+    resampled_samples: Option<Vec<f32>>,
+    resampler: Option<rubato::FftFixedIn<f32>>,
 }
 
 pub struct SamplePlayer {
@@ -31,22 +34,59 @@ impl SamplePlayer {
 
 impl audio::Synth for SamplePlayer {
     fn play(&self, sample_rate: u32, channels: usize, out_samples: &mut [f32]) {
-        let incoming = self.incoming.lock().unwrap().take();
         let mut state = self.state.lock().unwrap();
         let sref = state.get_or_insert_with(|| State {
             current_sample_rate: sample_rate,
-            sample_pos: 0,
-            samples: Vec::new(),
+            play_pos: 0,
+            raw_samples: None,
+            resampled_samples: None,
+            resampler: None,
         });
-        sref.current_sample_rate = sample_rate;
+        if let Some(incoming) = self.incoming.lock().unwrap().take() {
+            sref.raw_samples = Some(incoming);
+            sref.resampled_samples = None;
+        }
+        if sref.current_sample_rate != sample_rate {
+            sref.resampled_samples = None;
+            sref.resampler = None;
+            sref.current_sample_rate = sample_rate;
+        }
+        if sref.resampled_samples.is_none() {
+            const ENCODEC_SAMPLE_RATE: usize = 24000;
+            const ENCODEC_FRAGMENT_SIZE: usize = 320;
+            sref.play_pos = 0;
+            if let Some(raw) = &sref.raw_samples {
+                sref.resampled_samples = Some(
+                    sref.resampler
+                        .get_or_insert_with(|| {
+                            rubato::FftFixedIn::new(
+                                ENCODEC_SAMPLE_RATE,
+                                sref.current_sample_rate as usize,
+                                ENCODEC_FRAGMENT_SIZE,
+                                1,
+                                1,
+                            )
+                            .unwrap()
+                        })
+                        .process(&[raw], None)
+                        .unwrap()
+                        .into_iter()
+                        .next()
+                        .unwrap(),
+                );
+            }
+        }
         // TODO: do the resampling on the background thread instead
         for s in out_samples.chunks_exact_mut(channels) {
-            // TODO: values from the samples instead
-            let value = f64::sin(sref.sample_pos as f64 / sample_rate as f64 * 440f64) as f32;
+            let value = if let Some(data) = &sref.resampled_samples {
+                sref.play_pos = (sref.play_pos + 1) % data.len();
+                data[sref.play_pos]
+            } else {
+                0.0
+            };
             for t in s {
                 *t = value;
             }
-            sref.sample_pos += 1;
         }
     }
 }
