@@ -6,3 +6,4 @@ mod compute;
 mod worker;
 mod audio;
 mod synth;
+mod code_ui;

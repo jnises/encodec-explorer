@@ -20,9 +20,15 @@ impl Compute {
         Ok(Self { model, device })
     }
 
-    pub fn decode_codes(&self, code: u32) -> anyhow::Result<Vec<f32>> {
-        // TODO: pad and such
-        let code_tensor = Tensor::new(&[[[code, code, code, code]]], &self.device)?;
+    pub fn decode_codes(&self, codes: &[u32]) -> anyhow::Result<Vec<f32>> {
+        const SEQUENCE_LEN: usize = 4;
+        let mut v = Vec::with_capacity(codes.len() * SEQUENCE_LEN);
+        for b in 0..codes.len() {
+            for _ in 0..SEQUENCE_LEN {
+                v.push(codes[b]);
+            }
+        }
+        let code_tensor = Tensor::from_vec(v, (1, codes.len(), SEQUENCE_LEN), &self.device)?;
         let samples = self.model.decode(&code_tensor)?.i(0)?.i(0)?;
         const FRAGMENT_SIZE: usize = 320;
         Ok((0..FRAGMENT_SIZE)

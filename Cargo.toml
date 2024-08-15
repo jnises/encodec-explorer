@@ -13,15 +13,15 @@ targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 [dependencies]
 egui = "0.28"
 eframe = { version = "0.28", default-features = false, features = [
-    "accesskit",     # Make egui compatible with screen readers. NOTE: adds a lot of dependencies.
+    #"accesskit",     # Make egui compatible with screen readers. NOTE: adds a lot of dependencies.
     "default_fonts", # Embed the default egui fonts.
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
-    "persistence",   # Enable restoring app state when restarting the app.
+    #"persistence",   # Enable restoring app state when restarting the app.
 ] }
 log = "0.4"
 
 # You only need serde if you want app persistence:
-serde = { version = "1", features = ["derive"] }
+#serde = { version = "1", features = ["derive"] }
 
 candle-core = "0.6.0"
 hf-hub = "0.3.2"

@@ -5,7 +5,7 @@ use crate::compute;
 
 enum ToWorker {
     Stop,
-    SetCodes { code: u32 },
+    SetCodes { codes: Vec<u32> },
 }
 
 enum ToApp {
@@ -40,8 +40,8 @@ impl Worker {
         }
     }
 
-    pub fn set_code(&mut self, code: u32) -> anyhow::Result<()> {
-        self.to_worker.send(ToWorker::SetCodes { code })?;
+    pub fn set_codes(&mut self, codes: Vec<u32>) -> anyhow::Result<()> {
+        self.to_worker.send(ToWorker::SetCodes { codes })?;
         Ok(())
     }
 
@@ -84,31 +84,27 @@ fn run(
             // TODO: pump all pending messages to avoid decoding things that will be immediately overwritten
             match from_app.recv()? {
                 ToWorker::Stop => return Ok(false),
-                ToWorker::SetCodes { code } => {
+                ToWorker::SetCodes { codes: code } => {
                     current_code = Some(code);
                 }
             }
             if prev_code != current_code {
-                if let Some(code) = current_code {
-                    let pcm = c.decode_codes(code)?;
+                if let Some(code) = &current_code {
+                    let pcm = if code.is_empty() {
+                        (0..320).map(|_| 0.0).collect()
+                    } else {
+                        c.decode_codes(code)?
+                    };
                     to_app.send(ToApp::Samples(pcm))?;
                 }
-                prev_code = current_code;
+                prev_code = current_code.clone();
             }
             Ok(true)
         })();
         match r.unwrap() {
-            true => {},
+            true => {}
             false => break,
         }
-        // match r {
-        //     Ok(false) => break,
-        //     Err(e) => {
-        //         let es = e.to_string();
-        //         to_app.send(ToApp::Error(es)).unwrap()
-        //     },
-        //     _ => {},
-        // }
     }
     Ok(())
 }
