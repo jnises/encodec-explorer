@@ -91,7 +91,7 @@ fn run(
             if prev_code != current_code {
                 if let Some(code) = &current_code {
                     let pcm = if code.is_empty() {
-                        (0..320).map(|_| 0.0).collect()
+                        vec![0.0; 320]
                     } else {
                         c.decode_codes(code)?
                     };

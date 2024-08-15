@@ -10,6 +10,7 @@ pub struct EncodecExplorer {
     worker: Option<worker::Worker>,
     audio: Option<audio::AudioManager>,
     synth: Option<Arc<synth::SamplePlayer>>,
+    samples: Vec<f32>,
 }
 
 impl Default for EncodecExplorer {
@@ -19,6 +20,7 @@ impl Default for EncodecExplorer {
             worker: None,
             audio: None,
             synth: None,
+            samples: vec![0.0; 320],
         }
     }
 }
@@ -48,10 +50,11 @@ impl eframe::App for EncodecExplorer {
                 .as_ref()
                 .unwrap()
                 .update_samples(new_samples.to_vec());
+            self.samples = new_samples.to_vec();
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            draw_buffer(ui, self.worker.as_ref().unwrap().samples());
+            draw_buffer(ui, &self.samples);
             let mut new_codes = self.codes.clone();
             code_ui::draw(ui, &mut new_codes);
             if new_codes != self.codes {
