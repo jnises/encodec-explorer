@@ -52,22 +52,23 @@ impl audio::Synth for SamplePlayer {
             sref.current_sample_rate = sample_rate;
         }
         if sref.resampled_samples.is_none() {
+            sref.play_pos = 0;
             const ENCODEC_SAMPLE_RATE: usize = 24000;
             const ENCODEC_FRAGMENT_SIZE: usize = 320;
-            sref.play_pos = 0;
             if let Some(raw) = &sref.raw_samples {
+                let resampler = sref.resampler.get_or_insert_with(|| {
+                    rubato::FftFixedIn::new(
+                        ENCODEC_SAMPLE_RATE,
+                        sref.current_sample_rate as usize,
+                        ENCODEC_FRAGMENT_SIZE,
+                        1,
+                        1,
+                    )
+                    .unwrap()
+                });
+                resampler.reset();
                 sref.resampled_samples = Some(
-                    sref.resampler
-                        .get_or_insert_with(|| {
-                            rubato::FftFixedIn::new(
-                                ENCODEC_SAMPLE_RATE,
-                                sref.current_sample_rate as usize,
-                                ENCODEC_FRAGMENT_SIZE,
-                                1,
-                                1,
-                            )
-                            .unwrap()
-                        })
+                    resampler
                         .process(&[raw], None)
                         .unwrap()
                         .into_iter()

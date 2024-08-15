@@ -60,9 +60,9 @@ impl Worker {
         samples_updated.then_some(&self.samples)
     }
 
-    pub fn samples(&self) -> &[f32] {
-        self.samples.as_slice()
-    }
+    // pub fn samples(&self) -> &[f32] {
+    //     self.samples.as_slice()
+    // }
 }
 
 impl Drop for Worker {
