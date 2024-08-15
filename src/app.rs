@@ -32,6 +32,9 @@ impl Default for EncodecExplorer {
 impl EncodecExplorer {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        cc.egui_ctx.style_mut(|s| {
+            s.spacing.slider_width = 300.0;
+        });
         let mut s = if let Some(storage) = cc.storage {
             eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
         } else {
@@ -60,8 +63,8 @@ impl eframe::App for EncodecExplorer {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.add(egui::Slider::new(&mut self.code, 0..=1023).text("code"));
             draw_buffer(ui, self.worker.as_ref().unwrap().samples());
+            ui.add(egui::Slider::new(&mut self.code, 0..=1023).text("code").vertical());
         });
 
         self.worker.as_mut().unwrap().set_code(self.code).unwrap();
