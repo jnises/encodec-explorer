@@ -93,7 +93,7 @@ fn run(
                     let pcm = if code.is_empty() {
                         vec![0.0; 320]
                     } else {
-                        c.decode_codes(code)?
+                        c.decode_codes(&Tensor::from_vec(code.clone(), (code.len(), 1), c.device())?)?
                     };
                     to_app.send(ToApp::Samples(pcm))?;
                 }
