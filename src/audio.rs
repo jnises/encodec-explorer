@@ -68,9 +68,7 @@ impl AudioManager {
                         supported_config.min_sample_rate(),
                         supported_config.max_sample_rate(),
                     );
-                    let mut config = supported_config
-                        .with_sample_rate(sample_rate)
-                        .config();
+                    let mut config = supported_config.with_sample_rate(sample_rate).config();
                     if let SupportedBufferSize::Range { min, max } = supported_config.buffer_size()
                     {
                         match self.forced_buffer_size {
