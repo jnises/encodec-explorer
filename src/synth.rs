@@ -1,6 +1,5 @@
-use std::{borrow::BorrowMut, sync::Mutex};
+use std::sync::Mutex;
 
-use log::info;
 use rubato::Resampler;
 
 use crate::audio;

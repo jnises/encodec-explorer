@@ -7,12 +7,27 @@ pub struct Compute {
 }
 
 impl Compute {
-    pub fn new() -> anyhow::Result<Self> {
+    pub async fn new() -> anyhow::Result<Self> {
         let device = candle_core::Device::Cpu;
-        let model_path = hf_hub::api::sync::Api::new()?
-            .model("facebook/encodec_24khz".to_string())
-            .get("model.safetensors")?;
+        let model_path = "model.safetensors";
+        #[cfg(target_arch = "wasm32")]
+        let vb = candle_nn::VarBuilder::from_buffered_safetensors(
+            reqwest::get(format!(
+                "{}/{model_path}",
+                web_sys::window().unwrap().location().origin().unwrap()
+            ))
+            .await?
+            .bytes()
+            .await?
+            .into(),
+            DType::F32,
+            &device,
+        )?;
+        #[cfg(not(target_arch = "wasm32"))]
         let vb = unsafe {
+            let model_path = hf_hub::api::sync::Api::new()?
+                .model("facebook/encodec_24khz".to_string())
+                .get("model.safetensors")?;
             candle_nn::VarBuilder::from_mmaped_safetensors(&[model_path], DType::F32, &device)?
         };
         let config = encodec::Config::default();
