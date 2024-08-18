@@ -13,7 +13,7 @@ impl Compute {
         #[cfg(target_arch = "wasm32")]
         let vb = candle_nn::VarBuilder::from_buffered_safetensors(
             reqwest::get(format!(
-                "{}/{model_path}",
+                "{}{model_path}",
                 web_sys::window().unwrap().location().origin().unwrap()
             ))
             .await?
