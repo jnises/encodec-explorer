@@ -1,1 +1,6 @@
 [build]
+
+[[hooks]]
+stage = "build"
+command = "rust-script"
+command_arguments = ["get-model.rs"]

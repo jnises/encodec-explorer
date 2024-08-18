@@ -18,7 +18,11 @@ fn main() {
         .get("model.safetensors")
         .unwrap();
     // TODO: strip out the encoder bits
-    std::fs::copy(&model_path, "model.safetensors").unwrap();
+    std::fs::copy(
+        &model_path,
+        std::path::Path::new(&std::env::var("TRUNK_STAGING_DIR").unwrap()).join("model.safetensors"),
+    )
+    .unwrap();
     // let file = File::open(&model_path).unwrap();
     // let buffer = unsafe { MmapOptions::new().map(&file).unwrap() };
     // let tensors = SafeTensors::deserialize(&buffer).unwrap();
