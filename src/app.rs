@@ -21,7 +21,6 @@ enum ComputeState {
 
 pub struct EncodecExplorer {
     codes: Vec<u32>,
-    // TODO: do the computation on a separate thread instead
     compute: ComputeState,
     audio: Option<audio::AudioManager>,
     synth: Option<Arc<synth::SamplePlayer>>,
@@ -47,26 +46,13 @@ impl EncodecExplorer {
             s.spacing.slider_width = 300.0;
         });
         let mut s = Self::default();
-        //s.compute = ComputeState::Loading(Promise::spawn_local(compute::Compute::new()));
         s.synth = Some(Arc::new(synth::SamplePlayer::new()));
-        // s.audio = Some(audio::AudioManager::new(
-        //     s.synth.as_ref().unwrap().clone(),
-        //     |e| warn!("synth error: {e}"),
-        // ));
         s
     }
 }
 
 impl eframe::App for EncodecExplorer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // if let Some(new_samples) = self.worker.as_mut().unwrap().update() {
-        //     self.synth
-        //         .as_ref()
-        //         .unwrap()
-        //         .update_samples(new_samples.to_vec());
-        //     self.samples = new_samples.to_vec();
-        // }
-
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.label("encodec-explorer");
             match self.audio {
@@ -89,6 +75,7 @@ impl eframe::App for EncodecExplorer {
                             code_ui::draw(ui, &mut new_codes);
                             if new_codes != self.codes {
                                 self.codes = new_codes;
+                                // TODO: do the computation on a separate worker instead
                                 self.samples = c
                                     .decode_codes(
                                         &Tensor::from_vec(
@@ -123,7 +110,7 @@ impl eframe::App for EncodecExplorer {
                 }
             }
         });
-        // TODO: only reppaint if something has happened
+        // TODO: only repaint if something has happened
         ctx.request_repaint_after(Duration::from_secs(1));
     }
 }

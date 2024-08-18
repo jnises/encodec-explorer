@@ -9,9 +9,6 @@ pub struct Compute {
 impl Compute {
     pub async fn new() -> anyhow::Result<Self> {
         let device = candle_core::Device::Cpu;
-        // let model_path = hf_hub::api::sync::Api::new()?
-        //     .model("facebook/encodec_24khz".to_string())
-        //     .get("model.safetensors")?;
         let model_path = "model.safetensors";
         #[cfg(target_arch = "wasm32")]
         let vb = candle_nn::VarBuilder::from_buffered_safetensors(
@@ -28,6 +25,9 @@ impl Compute {
         )?;
         #[cfg(not(target_arch = "wasm32"))]
         let vb = unsafe {
+            let model_path = hf_hub::api::sync::Api::new()?
+                .model("facebook/encodec_24khz".to_string())
+                .get("model.safetensors")?;
             candle_nn::VarBuilder::from_mmaped_safetensors(&[model_path], DType::F32, &device)?
         };
         let config = encodec::Config::default();
