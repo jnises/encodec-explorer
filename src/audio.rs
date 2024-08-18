@@ -7,9 +7,7 @@ use cpal::{
     SupportedStreamConfigRange,
 };
 use crossbeam::atomic::AtomicCell;
-use log::{info, warn};
-
-const NUM_CHANNELS: usize = 2;
+use log::warn;
 
 pub trait Synth {
     fn play(&self, sample_rate: u32, channels: usize, out_samples: &mut [f32]);
@@ -41,23 +39,6 @@ impl AudioManager {
         };
         s.setup();
         s
-    }
-
-    pub fn get_devices(&self) -> Vec<Device> {
-        let host = cpal::default_host();
-        match host.output_devices() {
-            Ok(devices) => devices.collect(),
-            Err(_) => vec![],
-        }
-    }
-
-    pub fn set_device(&mut self, device: Device) {
-        if self.device.as_ref().and_then(|d| d.name().ok()) != device.name().ok() {
-            self.stream = None;
-            self.config_range = None;
-            self.device = Some(device);
-            self.setup();
-        }
     }
 
     fn setup(&mut self) {
@@ -134,26 +115,5 @@ impl AudioManager {
 
     pub fn get_name(&self) -> Option<String> {
         self.device.as_ref()?.name().ok()
-    }
-
-    pub fn get_buffer_size(&self) -> Option<u32> {
-        match self.buffer_size.load() {
-            0 => None,
-            n => Some(n),
-        }
-    }
-
-    pub fn get_buffer_size_range(&self) -> Option<(u32, u32)> {
-        match self.config_range.as_ref()?.buffer_size() {
-            SupportedBufferSize::Range { min, max } => Some((*min, *max)),
-            SupportedBufferSize::Unknown => None,
-        }
-    }
-
-    pub fn set_forced_buffer_size(&mut self, buffer_size: Option<u32>) {
-        if self.forced_buffer_size != buffer_size {
-            self.forced_buffer_size = buffer_size;
-            self.setup();
-        }
     }
 }
