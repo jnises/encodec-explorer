@@ -1,6 +1,6 @@
 {
-  "name": "egui Template PWA",
-  "short_name": "egui-template-pwa",
+  "name": "encodec-explorer PWA",
+  "short_name": "encodec-explorer-pwa",
   "icons": [
     {
       "src": "./icon-256.png",
