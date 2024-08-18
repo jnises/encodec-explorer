@@ -1,5 +1,11 @@
 # encodec-explorer
 
+### Requirements
+
+rust-script:
+
+`cargo install rust-script`
+
 ### Testing locally
 
 Make sure you are using the latest version of stable rust by running `rustup update`.

@@ -1,13 +1,28 @@
 use std::{sync::Arc, time::Duration};
 
+use candle_core::Tensor;
 use egui::{emath, epaint, pos2, vec2, Color32, Pos2, Rect, Stroke};
 use log::{info, warn};
+use poll_promise::Promise;
 
-use crate::{audio, code_ui, synth, worker};
+use crate::{
+    audio, code_ui,
+    compute::{self, Compute},
+    synth,
+};
+
+#[derive(Default)]
+enum ComputeState {
+    #[default]
+    Uninitialized,
+    Loading(Promise<anyhow::Result<Compute>>),
+    Loaded(Compute),
+}
 
 pub struct EncodecExplorer {
     codes: Vec<u32>,
-    worker: Option<worker::Worker>,
+    // TODO: do the computation on a separate thread instead
+    compute: ComputeState,
     audio: Option<audio::AudioManager>,
     synth: Option<Arc<synth::SamplePlayer>>,
     samples: Vec<f32>,
@@ -17,7 +32,7 @@ impl Default for EncodecExplorer {
     fn default() -> Self {
         Self {
             codes: Vec::new(),
-            worker: None,
+            compute: ComputeState::Uninitialized,
             audio: None,
             synth: None,
             samples: vec![0.0; 320],
@@ -32,7 +47,7 @@ impl EncodecExplorer {
             s.spacing.slider_width = 300.0;
         });
         let mut s = Self::default();
-        s.worker = Some(worker::Worker::new());
+        s.compute = ComputeState::Loading(Promise::spawn_local(compute::Compute::new()));
         s.synth = Some(Arc::new(synth::SamplePlayer::new()));
         s.audio = Some(audio::AudioManager::new(
             s.synth.as_ref().unwrap().clone(),
@@ -45,27 +60,44 @@ impl EncodecExplorer {
 
 impl eframe::App for EncodecExplorer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if let Some(new_samples) = self.worker.as_mut().unwrap().update() {
-            self.synth
-                .as_ref()
-                .unwrap()
-                .update_samples(new_samples.to_vec());
-            self.samples = new_samples.to_vec();
-        }
+        // if let Some(new_samples) = self.worker.as_mut().unwrap().update() {
+        //     self.synth
+        //         .as_ref()
+        //         .unwrap()
+        //         .update_samples(new_samples.to_vec());
+        //     self.samples = new_samples.to_vec();
+        // }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            draw_buffer(ui, &self.samples);
-            let mut new_codes = self.codes.clone();
-            code_ui::draw(ui, &mut new_codes);
-            if new_codes != self.codes {
-                self.codes = new_codes;
-                self.worker
-                    .as_mut()
-                    .unwrap()
-                    .set_codes(self.codes.clone())
-                    .unwrap();
-            }
-            //ui.add(egui::Slider::new(&mut self.code, 0..=1023).text("code").vertical());
+            self.compute = match std::mem::take(&mut self.compute) {
+                ComputeState::Uninitialized => {
+                    ui.label("uninitialized");
+                    ComputeState::Uninitialized
+                }
+                ComputeState::Loading(p) => {
+                    ui.label("loading");
+                    match p.try_take() {
+                        Ok(c) => ComputeState::Loaded(c.unwrap()),
+                        Err(p) => ComputeState::Loading(p),
+                    }
+                }
+                ComputeState::Loaded(c) => {
+                    draw_buffer(ui, &self.samples);
+                    let mut new_codes = self.codes.clone();
+                    code_ui::draw(ui, &mut new_codes);
+                    if new_codes != self.codes {
+                        self.codes = new_codes;
+                        self.samples = c
+                            .decode_codes(&Tensor::from_vec(
+                                self.codes.clone(),
+                                (self.codes.len(), 1),
+                                c.device(),
+                            ).unwrap())
+                            .unwrap();
+                    }
+                    ComputeState::Loaded(c)
+                }
+            };
         });
         // TODO: only reppaint if something has happened
         ctx.request_repaint_after(Duration::from_secs(1));
