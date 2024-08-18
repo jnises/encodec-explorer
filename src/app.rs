@@ -47,13 +47,12 @@ impl EncodecExplorer {
             s.spacing.slider_width = 300.0;
         });
         let mut s = Self::default();
-        s.compute = ComputeState::Loading(Promise::spawn_local(compute::Compute::new()));
+        //s.compute = ComputeState::Loading(Promise::spawn_local(compute::Compute::new()));
         s.synth = Some(Arc::new(synth::SamplePlayer::new()));
-        s.audio = Some(audio::AudioManager::new(
-            s.synth.as_ref().unwrap().clone(),
-            |e| warn!("synth error: {e}"),
-        ));
-        info!("audio device: {:?}", s.audio.as_ref().unwrap().get_name());
+        // s.audio = Some(audio::AudioManager::new(
+        //     s.synth.as_ref().unwrap().clone(),
+        //     |e| warn!("synth error: {e}"),
+        // ));
         s
     }
 }
@@ -69,35 +68,60 @@ impl eframe::App for EncodecExplorer {
         // }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.compute = match std::mem::take(&mut self.compute) {
-                ComputeState::Uninitialized => {
-                    ui.label("uninitialized");
-                    ComputeState::Uninitialized
+            ui.label("encodec-explorer");
+            match self.audio {
+                Some(_) => {
+                    self.compute = match std::mem::take(&mut self.compute) {
+                        ComputeState::Uninitialized => {
+                            ui.label("uninitialized");
+                            ComputeState::Loading(Promise::spawn_local(compute::Compute::new()))
+                        }
+                        ComputeState::Loading(p) => {
+                            ui.label("loading");
+                            match p.try_take() {
+                                Ok(c) => ComputeState::Loaded(c.unwrap()),
+                                Err(p) => ComputeState::Loading(p),
+                            }
+                        }
+                        ComputeState::Loaded(c) => {
+                            draw_buffer(ui, &self.samples);
+                            let mut new_codes = self.codes.clone();
+                            code_ui::draw(ui, &mut new_codes);
+                            if new_codes != self.codes {
+                                self.codes = new_codes;
+                                self.samples = c
+                                    .decode_codes(
+                                        &Tensor::from_vec(
+                                            self.codes.clone(),
+                                            (self.codes.len(), 1),
+                                            c.device(),
+                                        )
+                                        .unwrap(),
+                                    )
+                                    .unwrap();
+                                self.synth
+                                    .as_ref()
+                                    .unwrap()
+                                    .update_samples(self.samples.clone());
+                            }
+                            ComputeState::Loaded(c)
+                        }
+                    };
                 }
-                ComputeState::Loading(p) => {
-                    ui.label("loading");
-                    match p.try_take() {
-                        Ok(c) => ComputeState::Loaded(c.unwrap()),
-                        Err(p) => ComputeState::Loading(p),
+                None => {
+                    // need to wait with audio until a button is clicked
+                    if ui.button("▶").clicked() {
+                        self.audio = Some(audio::AudioManager::new(
+                            self.synth.as_ref().unwrap().clone(),
+                            |e| warn!("synth error: {e}"),
+                        ));
+                        info!(
+                            "audio device: {:?}",
+                            self.audio.as_ref().unwrap().get_name()
+                        );
                     }
                 }
-                ComputeState::Loaded(c) => {
-                    draw_buffer(ui, &self.samples);
-                    let mut new_codes = self.codes.clone();
-                    code_ui::draw(ui, &mut new_codes);
-                    if new_codes != self.codes {
-                        self.codes = new_codes;
-                        self.samples = c
-                            .decode_codes(&Tensor::from_vec(
-                                self.codes.clone(),
-                                (self.codes.len(), 1),
-                                c.device(),
-                            ).unwrap())
-                            .unwrap();
-                    }
-                    ComputeState::Loaded(c)
-                }
-            };
+            }
         });
         // TODO: only reppaint if something has happened
         ctx.request_repaint_after(Duration::from_secs(1));

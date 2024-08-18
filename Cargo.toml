@@ -30,7 +30,7 @@ candle-nn = "0.6.0"
 candle-transformers = "0.6.0"
 rubato = "0.15.0"
 crossbeam = "0.8.4"
-cpal = "0.15.3"
+cpal = { version = "0.15.3", features = ["wasm-bindgen"] }
 getrandom = { version = "0.2", features = ["js"] }
 reqwest = "0.12.5"
 poll-promise = { version = "0.3.0", features = ["web"] }

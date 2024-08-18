@@ -7,7 +7,7 @@ use cpal::{
     SupportedStreamConfigRange,
 };
 use crossbeam::atomic::AtomicCell;
-use log::warn;
+use log::{info, warn};
 
 const NUM_CHANNELS: usize = 2;
 
@@ -25,8 +25,7 @@ pub struct AudioManager {
     synth: Arc<dyn Synth + Send + Sync>,
 }
 
-impl AudioManager
-{
+impl AudioManager {
     pub fn new<U>(synth: Arc<dyn Synth + Send + Sync>, error_callback: U) -> Self
     where
         U: Fn(String) + Send + Sync + 'static,
