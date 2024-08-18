@@ -40,7 +40,6 @@ impl Default for EncodecExplorer {
 }
 
 impl EncodecExplorer {
-    /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         cc.egui_ctx.style_mut(|s| {
             s.spacing.slider_width = 300.0;
