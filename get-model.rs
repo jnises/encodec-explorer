@@ -5,6 +5,7 @@
 //! ```
 
 fn main() {
+    // TODO: hf token?
     let model_path = hf_hub::api::sync::Api::new()
         .unwrap()
         .model("facebook/encodec_24khz".to_string())
