@@ -11,6 +11,7 @@ fn main() {
         .model("facebook/encodec_24khz".to_string())
         .get("model.safetensors")
         .unwrap();
+    println!("model path: {model_path:?}");
     // TODO: strip out the encoder bits
     std::fs::copy(
         &model_path,

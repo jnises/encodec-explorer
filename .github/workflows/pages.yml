@@ -26,6 +26,11 @@ jobs:
           rustup set profile minimal
           rustup target add wasm32-unknown-unknown
       # TODO: also cache the model downloaded from hf-hub
+      - name: model cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface/hub
+          key: ${{ runner.os }}-models
       - name: Rust Cache # cache the rust build artefacts
         uses: Swatinem/rust-cache@v2
       - name: Download and install Trunk binary
