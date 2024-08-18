@@ -10,6 +10,9 @@ rust-version = "1.76"
 all-features = true
 targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 
+[build-dependencies]
+hf-hub = "0.3.2"
+
 [dependencies]
 egui = "0.28"
 eframe = { version = "0.28", default-features = false, features = [
@@ -20,11 +23,7 @@ eframe = { version = "0.28", default-features = false, features = [
 ] }
 log = "0.4"
 
-# You only need serde if you want app persistence:
-#serde = { version = "1", features = ["derive"] }
-
 candle-core = "0.6.0"
-#hf-hub = "0.3.2"
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 candle-nn = "0.6.0"
 candle-transformers = "0.6.0"
