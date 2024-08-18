@@ -1,5 +1,7 @@
 # encodec-explorer
 
+Quick hack to explore the decoder part of meta's encodec model by generating looping sounds.
+
 ### Requirements
 
 rust-script:

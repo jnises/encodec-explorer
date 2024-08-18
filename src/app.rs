@@ -44,9 +44,10 @@ impl EncodecExplorer {
         cc.egui_ctx.style_mut(|s| {
             s.spacing.slider_width = 300.0;
         });
-        let mut s = Self::default();
-        s.synth = Some(Arc::new(synth::SamplePlayer::new()));
-        s
+        Self {
+            synth: Some(Arc::new(synth::SamplePlayer::new())),
+            ..Default::default()
+        }
     }
 }
 
