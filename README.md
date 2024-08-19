@@ -2,6 +2,10 @@
 
 Quick hack to explore the decoder part of meta's encodec model by generating looping sounds.
 
+
+Test at https://jnises.github.io/encodec-explorer
+
+
 ### Requirements
 
 rust-script:
