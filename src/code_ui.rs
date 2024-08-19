@@ -1,4 +1,4 @@
-use egui::{DragValue, Slider};
+use egui::Slider;
 
 pub fn draw(ui: &mut egui::Ui, codes: &mut Vec<u32>) {
     if codes.is_empty() {
@@ -8,7 +8,7 @@ pub fn draw(ui: &mut egui::Ui, codes: &mut Vec<u32>) {
         egui::ScrollArea::vertical()
             .max_height(500.0)
             .show(ui, |ui| {
-                for (i, c) in codes.iter_mut().enumerate() {
+                for c in codes.iter_mut() {
                     const MAX_CODE: u32 = 1023;
                     ui.add(Slider::new(c, 0..=MAX_CODE));
                 }
