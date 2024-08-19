@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use candle_core::Tensor;
-use egui::{emath, epaint, pos2, vec2, Color32, Pos2, Rect, Stroke};
+use egui::{emath, epaint, pos2, vec2, Color32, Pos2, Rect, Spinner, Stroke};
 use log::{info, warn};
 use poll_promise::Promise;
 
@@ -63,7 +63,7 @@ impl eframe::App for EncodecExplorer {
                             ComputeState::Loading(Promise::spawn_local(compute::Compute::new()))
                         }
                         ComputeState::Loading(p) => {
-                            ui.label("loading");
+                            ui.add(Spinner::new());
                             match p.try_take() {
                                 Ok(c) => ComputeState::Loaded(c.unwrap()),
                                 Err(p) => ComputeState::Loading(p),
