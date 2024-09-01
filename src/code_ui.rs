@@ -82,44 +82,6 @@ pub fn draw(ui: &mut egui::Ui, codes: &mut Codes) {
     const MAX_FRAGMENTS: usize = 4;
     const MAX_LAYERS: usize = 32;
     ui.group(|ui| {
-        ui.horizontal(|ui| {
-            if ui
-                .add_enabled(
-                    codes.width > 1,
-                    egui::Button::new("remove fragment").small(),
-                )
-                .clicked()
-            {
-                codes.reshape(codes.width - 1, codes.height());
-            }
-            if ui
-                .add_enabled(
-                    codes.width < MAX_FRAGMENTS,
-                    egui::Button::new("add fragment").small(),
-                )
-                .clicked()
-            {
-                codes.reshape(codes.width + 1, codes.height());
-            }
-            if ui
-                .add_enabled(
-                    codes.height() > 1,
-                    egui::Button::new("remove layer").small(),
-                )
-                .clicked()
-            {
-                codes.reshape(codes.width, codes.height() - 1);
-            }
-            if ui
-                .add_enabled(
-                    codes.height() < MAX_LAYERS,
-                    egui::Button::new("add layer").small(),
-                )
-                .clicked()
-            {
-                codes.reshape(codes.width, codes.height() + 1);
-            }
-        });
         egui::ScrollArea::vertical()
             .max_height(500.0)
             .show(ui, |ui| {
@@ -132,6 +94,32 @@ pub fn draw(ui: &mut egui::Ui, codes: &mut Codes) {
                                 ui.add(Slider::new(codes.get_mut(x, y).unwrap(), 0..=MAX_CODE));
                             }
                         });
+                    }
+                    if ui
+                        .add_enabled(codes.width > 1, egui::Button::new("-").small())
+                        .clicked()
+                    {
+                        codes.reshape(codes.width - 1, codes.height());
+                    }
+                    if ui
+                        .add_enabled(codes.width < MAX_FRAGMENTS, egui::Button::new("+").small())
+                        .clicked()
+                    {
+                        codes.reshape(codes.width + 1, codes.height());
+                    }
+                });
+                ui.horizontal(|ui| {
+                    if ui
+                        .add_enabled(codes.height() > 1, egui::Button::new("-").small())
+                        .clicked()
+                    {
+                        codes.reshape(codes.width, codes.height() - 1);
+                    }
+                    if ui
+                        .add_enabled(codes.height() < MAX_LAYERS, egui::Button::new("+").small())
+                        .clicked()
+                    {
+                        codes.reshape(codes.width, codes.height() + 1);
                     }
                 });
             });
