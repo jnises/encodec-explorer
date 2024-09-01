@@ -42,7 +42,7 @@ impl Default for EncodecExplorer {
 impl EncodecExplorer {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         cc.egui_ctx.style_mut(|s| {
-            s.spacing.slider_width = 300.0;
+            s.spacing.slider_width = 200.0;
         });
         Self {
             synth: Some(Arc::new(synth::SamplePlayer::new())),
@@ -120,8 +120,8 @@ impl eframe::App for EncodecExplorer {
 }
 
 fn draw_buffer(ui: &mut egui::Ui, buffer: &[f32]) {
-    let plot_width = ui.available_width().min(300.);
-    let (_, rect) = ui.allocate_space(vec2(plot_width, plot_width * 0.5));
+    let plot_width = ui.available_width().min((250 * buffer.len() / 320) as f32);
+    let (_, rect) = ui.allocate_space(vec2(plot_width, 150.0));
     let p = ui.painter_at(rect);
     p.rect_filled(rect, 10f32, Color32::BLACK);
     let to_rect = emath::RectTransform::from_to(

@@ -29,7 +29,7 @@ impl Codes {
         } else {
             debug_assert!(self.codes.len() % self.width == 0);
             let height = self.codes.len() / self.width;
-            Tensor::from_vec(self.codes.clone(), (self.width, height), device)?
+            Tensor::from_vec(self.codes.clone(), (height, self.width), device)?
         })
     }
 
