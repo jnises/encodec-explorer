@@ -51,22 +51,22 @@ impl audio::Synth for SamplePlayer {
             sref.play_pos = 0;
             const ENCODEC_SAMPLE_RATE: usize = 24000;
             if let Some(raw) = &sref.raw_samples {
-                let mut resampler = 
-                    rubato::FftFixedIn::new(
-                        ENCODEC_SAMPLE_RATE,
-                        sref.current_sample_rate as usize,
-                        raw.len(),
-                        1,
-                        1,
-                    )
-                    .unwrap();
+                let mut resampler = rubato::FftFixedIn::new(
+                    ENCODEC_SAMPLE_RATE,
+                    sref.current_sample_rate as usize,
+                    raw.len(),
+                    1,
+                    1,
+                )
+                .unwrap();
+                // TODO: handle looping better?
                 sref.resampled_samples = Some(
                     resampler
                         .process(&[raw], None)
                         .unwrap()
                         .into_iter()
-                        .next()
-                        .unwrap(),
+                        .flatten()
+                        .collect(),
                 );
             }
         }

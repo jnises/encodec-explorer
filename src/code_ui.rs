@@ -35,7 +35,7 @@ impl Codes {
 
     fn height(&self) -> usize {
         debug_assert!(self.width > 0);
-        debug_assert!(self.codes.len() > 0);
+        debug_assert!(!self.codes.is_empty());
         if self.width == 0 {
             0
         } else {
