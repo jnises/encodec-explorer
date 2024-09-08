@@ -34,7 +34,7 @@ impl audio::Synth for SamplePlayer {
     fn play(&self, sample_rate: u32, channels: usize, out_samples: &mut [f32]) {
         let mut state = self.state.lock().unwrap();
         let sref = state.get_or_insert_with(|| State {
-            current_sample_rate: sample_rate,
+            current_sample_rate: 0,
             play_pos: 0,
             raw_samples: None,
             resampled_samples: None,
@@ -44,6 +44,7 @@ impl audio::Synth for SamplePlayer {
             sref.resampled_samples = None;
         }
         if sref.current_sample_rate != sample_rate {
+            log::info!("sample rate changed to: {sample_rate}");
             sref.resampled_samples = None;
             sref.current_sample_rate = sample_rate;
         }
