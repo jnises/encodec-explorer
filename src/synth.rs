@@ -61,12 +61,20 @@ impl audio::Synth for SamplePlayer {
                 .unwrap();
                 // TODO: handle looping better?
                 let mut resampled = sref.resampled_samples.take().unwrap_or_default();
-                resampled.resize(raw.len() * sref.current_sample_rate as usize / ENCODEC_SAMPLE_RATE, 0f32);
-                let (in_samples, out_samples) = resampler
-                    .process_into_buffer(&[raw], &mut [&mut resampled], None)
-                    .unwrap();
-                debug_assert_eq!(in_samples, raw.len());
-                debug_assert_eq!(out_samples, resampled.len());
+                loop {
+                    match resampler.process_into_buffer(&[raw], &mut [&mut resampled], None) {
+                        Ok((in_samples, out_samples)) => {
+                            debug_assert_eq!(in_samples, raw.len());
+                            resampled.truncate(out_samples);
+                            break;
+                        }
+                        Err(rubato::ResampleError::InsufficientOutputBufferSize { channel, expected, .. }) => {
+                            debug_assert_eq!(channel, 0);
+                            resampled.resize(expected, 0f32);
+                        },
+                        Err(e) => panic!("{e}"),
+                    }
+                }
                 sref.resampled_samples = Some(resampled);
                 debug_assert!(
                     sref.resampled_samples.as_ref().unwrap().len().abs_diff(
