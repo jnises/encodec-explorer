@@ -18,7 +18,7 @@ impl Default for Codes {
 impl Codes {
     pub fn new() -> Self {
         Self {
-            codes: vec![1],
+            codes: vec![0],
             width: 1,
         }
     }
@@ -86,41 +86,49 @@ pub fn draw(ui: &mut egui::Ui, codes: &mut Codes) {
             .max_height(500.0)
             .show(ui, |ui| {
                 // TODO: use a table?
-                ui.horizontal(|ui| {
-                    for x in 0..codes.width {
-                        ui.vertical(|ui| {
-                            for y in 0..codes.height() {
-                                const MAX_CODE: u32 = 1023;
-                                ui.add(Slider::new(codes.get_mut(x, y).unwrap(), 0..=MAX_CODE));
-                            }
-                        });
-                    }
-                    if ui
-                        .add_enabled(codes.width > 1, egui::Button::new("-").small())
-                        .clicked()
-                    {
-                        codes.reshape(codes.width - 1, codes.height());
-                    }
-                    if ui
-                        .add_enabled(codes.width < MAX_FRAGMENTS, egui::Button::new("+").small())
-                        .clicked()
-                    {
-                        codes.reshape(codes.width + 1, codes.height());
-                    }
-                });
-                ui.horizontal(|ui| {
-                    if ui
-                        .add_enabled(codes.height() > 1, egui::Button::new("-").small())
-                        .clicked()
-                    {
-                        codes.reshape(codes.width, codes.height() - 1);
-                    }
-                    if ui
-                        .add_enabled(codes.height() < MAX_LAYERS, egui::Button::new("+").small())
-                        .clicked()
-                    {
-                        codes.reshape(codes.width, codes.height() + 1);
-                    }
+                ui.vertical_centered(|ui| {
+                    ui.horizontal(|ui| {
+                        if ui
+                            .add_enabled(codes.width > 1, egui::Button::new("⬅").small())
+                            .clicked()
+                        {
+                            codes.reshape(codes.width - 1, codes.height());
+                        }
+                        if ui
+                            .add_enabled(
+                                codes.width < MAX_FRAGMENTS,
+                                egui::Button::new("➡").small(),
+                            )
+                            .clicked()
+                        {
+                            codes.reshape(codes.width + 1, codes.height());
+                        }
+                        for x in 0..codes.width {
+                            ui.vertical(|ui| {
+                                for y in 0..codes.height() {
+                                    const MAX_CODE: u32 = 1023;
+                                    ui.add(Slider::new(codes.get_mut(x, y).unwrap(), 0..=MAX_CODE));
+                                }
+                            });
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        if ui
+                            .add_enabled(codes.height() > 1, egui::Button::new("⬆").small())
+                            .clicked()
+                        {
+                            codes.reshape(codes.width, codes.height() - 1);
+                        }
+                        if ui
+                            .add_enabled(
+                                codes.height() < MAX_LAYERS,
+                                egui::Button::new("⬇").small(),
+                            )
+                            .clicked()
+                        {
+                            codes.reshape(codes.width, codes.height() + 1);
+                        }
+                    });
                 });
             });
     });
