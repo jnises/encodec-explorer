@@ -1,12 +1,12 @@
 use std::{sync::Arc, time::Duration};
 
-use candle_core::Tensor;
 use egui::{emath, epaint, pos2, vec2, Color32, Pos2, Rect, Spinner, Stroke};
 use log::{info, warn};
 use poll_promise::Promise;
 
 use crate::{
-    audio, code_ui,
+    audio,
+    code_ui::{self, Codes},
     compute::{self, Compute},
     synth,
 };
@@ -20,7 +20,7 @@ enum ComputeState {
 }
 
 pub struct EncodecExplorer {
-    codes: Vec<u32>,
+    codes: Option<Codes>,
     compute: ComputeState,
     audio: Option<audio::AudioManager>,
     synth: Option<Arc<synth::SamplePlayer>>,
@@ -30,7 +30,7 @@ pub struct EncodecExplorer {
 impl Default for EncodecExplorer {
     fn default() -> Self {
         Self {
-            codes: Vec::new(),
+            codes: None,
             compute: ComputeState::Uninitialized,
             audio: None,
             synth: None,
@@ -42,7 +42,7 @@ impl Default for EncodecExplorer {
 impl EncodecExplorer {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         cc.egui_ctx.style_mut(|s| {
-            s.spacing.slider_width = 300.0;
+            s.spacing.slider_width = 200.0;
         });
         Self {
             synth: Some(Arc::new(synth::SamplePlayer::new())),
@@ -70,26 +70,30 @@ impl eframe::App for EncodecExplorer {
                             }
                         }
                         ComputeState::Loaded(c) => {
-                            draw_buffer(ui, &self.samples);
-                            let mut new_codes = self.codes.clone();
-                            code_ui::draw(ui, &mut new_codes);
-                            if new_codes != self.codes {
-                                self.codes = new_codes;
-                                // TODO: do the computation on a separate worker instead
-                                self.samples = c
-                                    .decode_codes(
-                                        &Tensor::from_vec(
-                                            self.codes.clone(),
-                                            (self.codes.len(), 1),
-                                            c.device(),
+                            if ui.button("⏹").clicked() {
+                                self.audio = None;
+                            } else {
+                                draw_buffer(ui, &self.samples);
+                                let mut new_codes = self.codes.clone().unwrap_or_default();
+                                code_ui::draw(ui, &mut new_codes);
+                                if Some(&new_codes) != self.codes.as_ref() {
+                                    self.codes = Some(new_codes);
+                                    // TODO: do the computation on a separate worker instead
+                                    self.samples = c
+                                        .decode_codes(
+                                            &self
+                                                .codes
+                                                .as_ref()
+                                                .unwrap()
+                                                .to_tensor(c.device())
+                                                .unwrap(),
                                         )
-                                        .unwrap(),
-                                    )
-                                    .unwrap();
-                                self.synth
-                                    .as_ref()
-                                    .unwrap()
-                                    .update_samples(self.samples.clone());
+                                        .unwrap();
+                                    self.synth
+                                        .as_ref()
+                                        .unwrap()
+                                        .update_samples(self.samples.clone());
+                                }
                             }
                             ComputeState::Loaded(c)
                         }
@@ -116,8 +120,8 @@ impl eframe::App for EncodecExplorer {
 }
 
 fn draw_buffer(ui: &mut egui::Ui, buffer: &[f32]) {
-    let plot_width = ui.available_width().min(300.);
-    let (_, rect) = ui.allocate_space(vec2(plot_width, plot_width * 0.5));
+    let plot_width = ui.available_width().min((250 * buffer.len() / 320) as f32);
+    let (_, rect) = ui.allocate_space(vec2(plot_width, 150.0));
     let p = ui.painter_at(rect);
     p.rect_filled(rect, 10f32, Color32::BLACK);
     let to_rect = emath::RectTransform::from_to(

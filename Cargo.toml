@@ -22,10 +22,9 @@ eframe = { version = "0.28", default-features = false, features = [
 log = "0.4"
 
 candle-core = "0.6.0"
-anyhow = { version = "1.0.86", features = ["backtrace"] }
+anyhow = { version = "1.0", features = ["backtrace"] }
 candle-nn = "0.6.0"
 candle-transformers = "0.6.0"
-rubato = "0.15.0"
 crossbeam = "0.8.4"
 cpal = { version = "0.15.3", features = ["wasm-bindgen"] }
 getrandom = { version = "0.2", features = ["js"] }
@@ -33,6 +32,7 @@ reqwest = "0.12.5"
 poll-promise = { version = "0.3.0", features = ["web"] }
 wasm-bindgen-futures = "0.4"
 web-sys = "0.3.4"
+num = "0.4.3"
 
 [profile.release]
 opt-level = 2 # fast and small wasm
