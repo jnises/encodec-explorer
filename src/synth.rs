@@ -1,7 +1,5 @@
 use std::sync::Mutex;
 
-use rubato::Resampler;
-
 use crate::audio;
 
 struct State {
@@ -52,35 +50,16 @@ impl audio::Synth for SamplePlayer {
             sref.play_pos = 0;
             const ENCODEC_SAMPLE_RATE: usize = 24000;
             if let Some(raw) = &sref.raw_samples {
-                let mut resampler = rubato::FftFixedInOut::new(
-                    ENCODEC_SAMPLE_RATE,
-                    sref.current_sample_rate as usize,
-                    raw.len(),
-                    1,
-                )
-                .unwrap();
                 // TODO: handle looping better?
+                // TODO: do some proper resampling. using rubato?
+                let ratio = sref.current_sample_rate as f64 / ENCODEC_SAMPLE_RATE as f64;
+                let output_size = (raw.len() as f64 * ratio) as usize;
                 let mut resampled = sref.resampled_samples.take().unwrap_or_default();
-                loop {
-                    match resampler.process_into_buffer(&[raw], &mut [&mut resampled], None) {
-                        Ok((in_samples, out_samples)) => {
-                            debug_assert_eq!(in_samples, raw.len());
-                            resampled.truncate(out_samples);
-                            break;
-                        }
-                        Err(rubato::ResampleError::InsufficientOutputBufferSize { channel, expected, .. }) => {
-                            debug_assert_eq!(channel, 0);
-                            resampled.resize(expected, 0f32);
-                        },
-                        Err(e) => panic!("{e}"),
-                    }
+                resampled.resize(output_size, 0f32);
+                for (i, s) in resampled.iter_mut().enumerate() {
+                    *s = raw[(i as f64 / ratio) as usize];
                 }
                 sref.resampled_samples = Some(resampled);
-                debug_assert!(
-                    sref.resampled_samples.as_ref().unwrap().len().abs_diff(
-                        raw.len() * sref.current_sample_rate as usize / ENCODEC_SAMPLE_RATE
-                    ) < 1
-                );
             }
         }
         // TODO: do the resampling on the background thread instead
