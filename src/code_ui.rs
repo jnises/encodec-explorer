@@ -104,32 +104,28 @@ pub fn draw(ui: &mut egui::Ui, codes: &mut Codes) {
                             codes.reshape(codes.width + 1, codes.height());
                         }
                         for x in 0..codes.width {
+                            ui.separator();
                             ui.vertical(|ui| {
                                 for y in 0..codes.height() {
                                     const MAX_CODE: u32 = 1023;
                                     let value = codes.get_mut(x, y).unwrap();
                                     ui.horizontal(|ui| {
                                         ui.add(Slider::new(value, 0..=MAX_CODE));
-                                        ui.vertical(|ui| {
-                                            if ui
-                                                .add_enabled(
-                                                    *value < MAX_CODE,
-                                                    egui::Button::new("+").small(),
-                                                )
-                                                .clicked()
-                                            {
-                                                *value += 1;
-                                            };
-                                            if ui
-                                                .add_enabled(
-                                                    *value > 0,
-                                                    egui::Button::new("-").small(),
-                                                )
-                                                .clicked()
-                                            {
-                                                *value -= 1;
-                                            }
-                                        });
+                                        if ui
+                                            .add_enabled(*value > 0, egui::Button::new("-").small())
+                                            .clicked()
+                                        {
+                                            *value -= 1;
+                                        }
+                                        if ui
+                                            .add_enabled(
+                                                *value < MAX_CODE,
+                                                egui::Button::new("+").small(),
+                                            )
+                                            .clicked()
+                                        {
+                                            *value += 1;
+                                        };
                                     });
                                 }
                             });
