@@ -51,28 +51,41 @@ impl audio::Synth for SamplePlayer {
             sref.play_pos = 0;
             const ENCODEC_SAMPLE_RATE: usize = 24000;
             if let Some(raw) = &sref.raw_samples {
-                let mut resampler = rubato::FftFixedIn::new(
-                    ENCODEC_SAMPLE_RATE,
-                    sref.current_sample_rate as usize,
+                let mut resampler = rubato::SincFixedIn::new(
+                    sref.current_sample_rate as f64 / ENCODEC_SAMPLE_RATE as f64,
+                    1.0,
+                    rubato::SincInterpolationParameters {
+                        sinc_len: 256,
+                        f_cutoff: 0.95,
+                        oversampling_factor: 128,
+                        interpolation: rubato::SincInterpolationType::Linear,
+                        window: rubato::WindowFunction::BlackmanHarris2,
+                    },
                     raw.len(),
-                    1,
                     1,
                 )
                 .unwrap();
                 // TODO: handle looping better?
                 let mut resampled = sref.resampled_samples.take().unwrap_or_default();
-                resampled.resize(raw.len() * sref.current_sample_rate as usize / ENCODEC_SAMPLE_RATE, 0f32);
-                let (in_samples, out_samples) = resampler
-                    .process_into_buffer(&[raw], &mut [&mut resampled], None)
-                    .unwrap();
-                debug_assert_eq!(in_samples, raw.len());
-                debug_assert_eq!(out_samples, resampled.len());
+                loop {
+                    match resampler.process_into_buffer(&[raw], &mut [&mut resampled], None) {
+                        Ok((in_samples, out_samples)) => {
+                            debug_assert_eq!(in_samples, raw.len());
+                            resampled.truncate(out_samples);
+                            break;
+                        }
+                        Err(rubato::ResampleError::InsufficientOutputBufferSize {
+                            channel,
+                            expected,
+                            ..
+                        }) => {
+                            debug_assert_eq!(channel, 0);
+                            resampled.resize(expected, 0f32);
+                        }
+                        Err(e) => panic!("{e:?}"),
+                    }
+                }
                 sref.resampled_samples = Some(resampled);
-                debug_assert!(
-                    sref.resampled_samples.as_ref().unwrap().len().abs_diff(
-                        raw.len() * sref.current_sample_rate as usize / ENCODEC_SAMPLE_RATE
-                    ) < 1
-                );
             }
         }
         // TODO: do the resampling on the background thread instead
