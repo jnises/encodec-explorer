@@ -60,19 +60,25 @@ impl audio::Synth for SamplePlayer {
                 )
                 .unwrap();
                 // TODO: handle looping better?
-                sref.resampled_samples = Some(
-                    resampler
-                        .process(&[raw], None)
-                        .unwrap()
-                        .into_iter()
-                        .flatten()
-                        .collect(),
+                let mut resampled = sref.resampled_samples.take().unwrap_or_default();
+                resampled.resize(raw.len() * sref.current_sample_rate as usize / ENCODEC_SAMPLE_RATE, 0f32);
+                let (in_samples, out_samples) = resampler
+                    .process_into_buffer(&[raw], &mut [&mut resampled], None)
+                    .unwrap();
+                debug_assert_eq!(in_samples, raw.len());
+                debug_assert_eq!(out_samples, resampled.len());
+                sref.resampled_samples = Some(resampled);
+                debug_assert!(
+                    sref.resampled_samples.as_ref().unwrap().len().abs_diff(
+                        raw.len() * sref.current_sample_rate as usize / ENCODEC_SAMPLE_RATE
+                    ) < 1
                 );
             }
         }
         // TODO: do the resampling on the background thread instead
         for s in out_samples.chunks_exact_mut(channels) {
             let value = if let Some(data) = &sref.resampled_samples {
+                //let value = if let Some(data) = &sref.raw_samples {
                 sref.play_pos = (sref.play_pos + 1) % data.len();
                 data[sref.play_pos]
             } else {
