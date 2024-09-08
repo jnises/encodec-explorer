@@ -52,11 +52,10 @@ impl audio::Synth for SamplePlayer {
             sref.play_pos = 0;
             const ENCODEC_SAMPLE_RATE: usize = 24000;
             if let Some(raw) = &sref.raw_samples {
-                let mut resampler = rubato::FftFixedIn::new(
+                let mut resampler = rubato::FftFixedInOut::new(
                     ENCODEC_SAMPLE_RATE,
                     sref.current_sample_rate as usize,
                     raw.len(),
-                    1,
                     1,
                 )
                 .unwrap();
