@@ -1,5 +1,35 @@
 use candle_core::{DType, Device, IndexOp as _, Tensor};
 use candle_transformers::models::encodec;
+use eframe::wasm_bindgen::JsCast;
+use gloo_utils::errors::JsError;
+use js_sys::wasm_bindgen::JsValue;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{Blob, Response};
+
+#[cfg(target_arch = "wasm32")]
+fn into_jserr(v: JsValue) -> JsError {
+    JsError::try_from(v).unwrap()
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn fetch(url: &str) -> anyhow::Result<Vec<u8>> {
+    let response = JsFuture::from(web_sys::window().unwrap().fetch_with_str(url))
+        .await
+        .map_err(into_jserr)?
+        .dyn_into::<Response>()
+        .map_err(into_jserr)?;
+    let blob = JsFuture::from(response.blob().map_err(into_jserr)?)
+        .await
+        .map_err(into_jserr)?
+        .dyn_into::<Blob>()
+        .map_err(into_jserr)?;
+    let buffer = JsFuture::from(blob.array_buffer())
+        .await
+        .map_err(into_jserr)?
+        .dyn_into::<js_sys::ArrayBuffer>()
+        .map_err(into_jserr)?;
+    Ok(js_sys::Uint8Array::new(&buffer).to_vec())
+}
 
 pub struct Compute {
     model: encodec::Model,
@@ -12,14 +42,7 @@ impl Compute {
         let model_path = "model.safetensors";
         #[cfg(target_arch = "wasm32")]
         let vb = candle_nn::VarBuilder::from_buffered_safetensors(
-            reqwest::get(format!(
-                "{}/{model_path}",
-                web_sys::window().unwrap().location().href().unwrap()
-            ))
-            .await?
-            .bytes()
-            .await?
-            .into(),
+            fetch(model_path).await?,
             DType::F32,
             &device,
         )?;

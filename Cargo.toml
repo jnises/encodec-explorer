@@ -1,10 +1,10 @@
 [package]
 name = "encodec-explorer"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Joel Nises <joel.nises@gmail.com>"]
 edition = "2021"
 include = ["LICENSE-APACHE", "LICENSE-MIT", "**/*.rs", "Cargo.toml"]
-rust-version = "1.76"
+rust-version = "1.81"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -14,17 +14,17 @@ targets = ["wasm32-unknown-unknown"]
 hf-hub = "0.3.2"
 
 [dependencies]
-egui = "0.28"
-eframe = { version = "0.28", default-features = false, features = [
+egui = "0.29"
+eframe = { version = "0.29", default-features = false, features = [
     "default_fonts", # Embed the default egui fonts.
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
 ] }
 log = "0.4"
 
-candle-core = "0.6.0"
+candle-core = "0.7"
 anyhow = { version = "1.0", features = ["backtrace"] }
-candle-nn = "0.6.0"
-candle-transformers = "0.6.0"
+candle-nn = "0.7"
+candle-transformers = "0.7"
 crossbeam = "0.8.4"
 cpal = { version = "0.15.3", features = ["wasm-bindgen"] }
 getrandom = { version = "0.2", features = ["js"] }
@@ -33,6 +33,8 @@ poll-promise = { version = "0.3.0", features = ["web"] }
 wasm-bindgen-futures = "0.4"
 web-sys = "0.3.4"
 num = "0.4.3"
+js-sys = "0.3.70"
+gloo-utils = "0.2.0"
 
 [profile.release]
 opt-level = 2 # fast and small wasm
