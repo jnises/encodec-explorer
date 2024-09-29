@@ -1,3 +1,0 @@
-[build]
-# to make rust-analyzer behave sensibly
-target = "wasm32-unknown-unknown"
