@@ -33,6 +33,8 @@ poll-promise = { version = "0.3.0", features = ["web"] }
 wasm-bindgen-futures = "0.4"
 web-sys = "0.3.4"
 num = "0.4.3"
+js-sys = "0.3.70"
+gloo-utils = "0.2.0"
 
 [profile.release]
 opt-level = 2 # fast and small wasm
